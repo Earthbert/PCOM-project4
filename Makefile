@@ -1,33 +1,32 @@
-# Thanks to Job Vranish (https://spin.atomicobject.com/2016/08/26/makefile-c-projects/)
-TARGET_EXEC := client
+CFLAGS = -Wall -g -Werror -Wno-error=unused-variable -I ./src/include
 
+SRC_DIR := ./src
 BUILD_DIR := ./build
-SRC_DIRS := ./src
 
-SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
+all: $(BUILD_DIR) client
 
-OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
+client: $(BUILD_DIR)/client.o  	\
+$(BUILD_DIR)/input_parser.o 	\
+$(BUILD_DIR)/server_com.o 		\
+$(BUILD_DIR)/picohttpparser.o
+	$(CXX) $(CPPFLAGS) $(CFLAGS) $^ -o $@
 
-DEPS := $(OBJS:.o=.d)
+$(BUILD_DIR):
+	mkdir $(BUILD_DIR)
 
-INC_DIRS := $(shell find $(SRC_DIRS) -type d)
+$(BUILD_DIR)/client.o: $(SRC_DIR)/client.cpp
+	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $^ -o $@
 
-INC_FLAGS := $(addprefix -I,$(INC_DIRS))
+$(BUILD_DIR)/input_parser.o: $(SRC_DIR)/input_parser.cpp
+	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $^ -o $@
 
-CPPFLAGS := $(INC_FLAGS) -MMD -MP -g -Wall -Wextra
+$(BUILD_DIR)/server_com.o: $(SRC_DIR)/server_com.cpp
+	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $^ -o $@
 
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
-	$(CXX) $(CPPFLAGS) $(OBJS) -o $@ $(LDFLAGS)
-
-$(BUILD_DIR)/%.cpp.o: %.cpp
-	mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-run:
-	$(BUILD_DIR)/$(TARGET_EXEC)
+$(BUILD_DIR)/picohttpparser.o: $(SRC_DIR)/picohttpparser/picohttpparser.c
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 .PHONY: clean
-clean:
-	rm -r $(BUILD_DIR)
 
--include $(DEPS)
+clean:
+	rm -rf client $(BUILD_DIR)/*o
