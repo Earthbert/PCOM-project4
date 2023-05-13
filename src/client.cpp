@@ -14,6 +14,7 @@ int main() {
 		switch (get_command_type(command)) {
 		case REGISTER: {
 			nlohmann::json *res = parse_credentials();
+			send_register_request(res);
 			break;
 		}
 		case LOGIN: {

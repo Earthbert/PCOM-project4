@@ -1,4 +1,5 @@
 #include "die.h"
+#include "server_com.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +8,7 @@
 #include <netinet/in.h> 
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <nlohmann/json.hpp>
 
 #define SERVER_IP "34.254.242.81"
 #define SERVER_PORT ((uint16_t)8080)
@@ -26,4 +28,9 @@ void start_connection() {
 
 	ret = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 	DIE(ret, "connect()");
+}
+
+void send_register_request(nlohmann::json *credentials) {
+	char buf[MAX_HTTP_REQ_LEN];
+
 }
