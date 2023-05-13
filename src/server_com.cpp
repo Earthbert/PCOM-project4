@@ -3,6 +3,7 @@
 #include "requests.h"
 #include "helpers.h"
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,16 +25,32 @@ static int sockfd;
 static char *log_cookie = NULL;
 
 static int parse_response(char *response, char *cookie) {
-	int status;
+	int status = BAD_REQUEST;
 	sscanf(response, "HTTP/1.1 %d", &status);
 
 	if (cookie != NULL) {
-		response = strstr(response, "Set-Cookie: connect.sid=");
-		sscanf(response, "Set-Cookie: connect.sid=%[^;]", cookie);
+		response = strstr(response, "Set-Cookie: ");
+		sscanf(response, "Set-Cookie: %[^\r]", cookie);
 	}
 
 	assert(status != BAD_REQUEST);
 	return status;
+}
+
+static char *send_and_receive(char *message) {
+	char *response;
+
+send:
+	send_to_server(sockfd, message);
+	response = receive_from_server(sockfd);
+
+	if (!strlen(response)) {
+		close(sockfd);
+		start_connection();
+		goto send;
+	}
+
+	return response;
 }
 
 void start_connection() {
@@ -59,9 +76,7 @@ void send_register_request(nlohmann::json *credentials) {
 	message = compute_post_request(SERVER_IP, "/api/v1/tema/auth/register", "application/json",
 		&credentials_buf, 1, NULL, 0);
 
-	send_to_server(sockfd, message);
-
-	char *response = receive_from_server(sockfd);
+	char *response = send_and_receive(message);
 
 	if (parse_response(response, NULL) != HTTP_CREATED) {
 		printf("User already register\n");
@@ -81,9 +96,8 @@ void send_login_request(nlohmann::json *credentials) {
 	message = compute_post_request(SERVER_IP, "/api/v1/tema/auth/login", "application/json",
 		&credentials_buf, 1, NULL, 0);
 
-	send_to_server(sockfd, message);
+	char *response = send_and_receive(message);
 
-	char *response = receive_from_server(sockfd);
 	log_cookie = new char[MAX_BODY_LEN];
 
 	if (parse_response(response, log_cookie) != HTTP_OK) {
@@ -94,4 +108,42 @@ void send_login_request(nlohmann::json *credentials) {
 	delete[] credentials_buf;
 	delete[] message;
 	delete credentials;
+}
+
+void send_access_request() {
+	char *message;
+
+	if (!log_cookie) {
+		printf("Not Logged In");
+	}
+
+	message = compute_get_request(SERVER_IP, "/api/v1/tema/library/access", NULL, &log_cookie, 1);
+
+	char *response = send_and_receive(message);
+
+	if (parse_response(response, NULL) != HTTP_OK) {
+		printf("Wrong credentials\n");
+	}
+
+	free(response);
+	delete[] message;
+}
+
+void send_books_request() {
+	char *message;
+
+	if (!log_cookie) {
+		printf("Not Logged In");
+	}
+
+	message = compute_get_request(SERVER_IP, "/api/v1/tema/library/books", NULL, NULL, 1);
+
+	char *response = send_and_receive(message);
+
+	if (parse_response(response, NULL) != HTTP_OK) {
+		printf("Wrong credentials\n");
+	}
+
+	free(response);
+	delete[] message;
 }

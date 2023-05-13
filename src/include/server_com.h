@@ -11,3 +11,4 @@ void send_register_request(nlohmann::json *credentials);
 
 void send_login_request(nlohmann::json *credentials);
 
+void send_access_request();

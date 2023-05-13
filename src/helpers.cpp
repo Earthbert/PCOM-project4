@@ -1,10 +1,10 @@
-#include <stdlib.h>     /* exit, atoi, malloc, free */
+#include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>     /* read, write, close */
-#include <string.h>     /* memcpy, memset */
-#include <sys/socket.h> /* socket, connect */
-#include <netinet/in.h> /* struct sockaddr_in, struct sockaddr */
-#include <netdb.h>      /* struct hostent, gethostbyname */
+#include <unistd.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include "helpers.h"
 #include "buffer.h"
@@ -35,7 +35,7 @@ int open_connection(char *host_ip, int portno, int ip_type, int socket_type, int
     serv_addr.sin_port = htons(portno);
     inet_aton(host_ip, &serv_addr.sin_addr);
 
-    /* connect the socket */
+
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         error("ERROR connecting");
 

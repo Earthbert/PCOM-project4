@@ -1,28 +1,24 @@
-#include <stdlib.h>     /* exit, atoi, malloc, free */
+#include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>     /* read, write, close */
-#include <string.h>     /* memcpy, memset */
-#include <sys/socket.h> /* socket, connect */
-#include <netinet/in.h> /* struct sockaddr_in, struct sockaddr */
-#include <netdb.h>      /* struct hostent, gethostbyname */
+#include <unistd.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include "helpers.h"
 #include "requests.h"
 
-char *compute_get_request(const char *host, const  char *url, char *query_params, char **cookies, int cookies_count) {
+char *compute_get_request(const char *host, const  char *url, char *auth, char **cookies, int cookies_count) {
     char *message = new char[BUFLEN]();
     char *line = new char[LINELEN]();
     char *body_data_buffer = new char[LINELEN]();
 
-    if (query_params != NULL) {
-        sprintf(line, "GET %s?%s HTTP/1.1", url, query_params);
-    } else {
-        sprintf(line, "GET %s HTTP/1.1", url);
-    }
+    sprintf(line, "GET %s HTTP/1.1", url);
 
     compute_message(message, line);
 
-    if (cookies != NULL) {
+    if (cookies) {
         for (int i = 0; i < cookies_count - 1; i++) {
             strcat(body_data_buffer, cookies[i]);
             strcat(body_data_buffer, "; ");
@@ -31,6 +27,11 @@ char *compute_get_request(const char *host, const  char *url, char *query_params
             strcat(body_data_buffer, cookies[cookies_count - 1]);
 
         sprintf(line, "Cookie: %s", body_data_buffer);
+        compute_message(message, line);
+    }
+
+    if (auth) {
+        sprintf(line, "Authorization: Bearer %s", auth);
         compute_message(message, line);
     }
 

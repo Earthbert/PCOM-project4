@@ -23,6 +23,7 @@ int main() {
 			break;
 		}
 		case ENTER_LIBRARY: {
+			send_access_request();
 			break;
 		}
 		case GET_BOOKS: {
