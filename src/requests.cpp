@@ -9,11 +9,10 @@
 #include "helpers.h"
 #include "requests.h"
 
-char *compute_get_request(char *host, char *url, char *query_params,
-    char **cookies, int cookies_count) {
-    char *message = new char[BUFLEN];
-    char *line = new char[LINELEN];
-    char *body_data_buffer = new char[LINELEN];
+char *compute_get_request(const char *host, const  char *url, char *query_params, char **cookies, int cookies_count) {
+    char *message = new char[BUFLEN]();
+    char *line = new char[LINELEN]();
+    char *body_data_buffer = new char[LINELEN]();
 
     if (query_params != NULL) {
         sprintf(line, "GET %s?%s HTTP/1.1", url, query_params);
@@ -38,14 +37,18 @@ char *compute_get_request(char *host, char *url, char *query_params,
     sprintf(line, "Host: %s", host);
     compute_message(message, line);
     compute_message(message, "");
+
+    delete[] line;
+    delete[] body_data_buffer;
+
     return message;
 }
 
-char *compute_post_request(char *host, char *url, char *content_type, char **body_data,
+char *compute_post_request(const char *host, const  char *url, const char *content_type, char **body_data,
     int body_data_fields_count, char **cookies, int cookies_count) {
-    char *message = new char[BUFLEN];
-    char *line = new char[LINELEN];
-    char *body_data_buffer = new char[LINELEN];
+    char *message = new char[BUFLEN]();
+    char *line = new char[LINELEN]();
+    char *body_data_buffer = new char[LINELEN]();
 
     for (int i = 0; i < body_data_fields_count - 1; i++) {
         strcat(body_data_buffer, body_data[i]);
@@ -58,7 +61,7 @@ char *compute_post_request(char *host, char *url, char *content_type, char **bod
     sprintf(line, "POST %s HTTP/1.1", url);
     compute_message(message, line);
 
-    sprintf(line, "Host %s", host);
+    sprintf(line, "Host: %s", host);
     compute_message(message, line);
 
     sprintf(line, "Content-Type: %s", content_type);
@@ -78,11 +81,16 @@ char *compute_post_request(char *host, char *url, char *content_type, char **bod
 
         sprintf(line, "Cookie: %s", cookies_buffer);
         compute_message(message, line);
+        delete[] cookies_buffer;
     }
 
     compute_message(message, "");
     memset(line, 0, LINELEN);
     strcat(message, body_data_buffer);
+    compute_message(message, "");
+
+    delete[] line;
+    delete[] body_data_buffer;
 
     return message;
 }
