@@ -45,7 +45,7 @@ char *compute_get_request(const char *host, const  char *url, char *auth, char *
     return message;
 }
 
-char *compute_post_request(const char *host, const  char *url, const char *content_type, char **body_data,
+char *compute_post_request(const char *host, const char *url, const char *auth, const char *content_type, char **body_data,
     int body_data_fields_count, char **cookies, int cookies_count) {
     char *message = new char[BUFLEN]();
     char *line = new char[LINELEN]();
@@ -71,6 +71,11 @@ char *compute_post_request(const char *host, const  char *url, const char *conte
     sprintf(line, "Content-Length: %ld", strlen(body_data_buffer));
     compute_message(message, line);
 
+    if (auth) {
+        sprintf(line, "Authorization: Bearer %s", auth);
+        compute_message(message, line);
+    }
+
     if (cookies != NULL) {
         char *cookies_buffer = new char[LINELEN];
         for (int i = 0; i < cookies_count - 1; i++) {
@@ -92,6 +97,26 @@ char *compute_post_request(const char *host, const  char *url, const char *conte
 
     delete[] line;
     delete[] body_data_buffer;
+
+    return message;
+}
+
+char *compute_delete_request(const char *host, const char *url, const char *auth) {
+    char *message = new char[BUFLEN]();
+    char *line = new char[LINELEN]();
+
+    sprintf(line, "DELETE %s HTTP/1.1", url);
+    compute_message(message, line);
+
+    sprintf(line, "Host: %s", host);
+    compute_message(message, line);
+
+    sprintf(line, "Authorization: Bearer %s", auth);
+    compute_message(message, line);
+
+    compute_message(message, "");
+
+    delete[] line;
 
     return message;
 }

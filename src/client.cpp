@@ -27,24 +27,30 @@ int main() {
 			break;
 		}
 		case GET_BOOKS: {
+			send_books_request();
 			break;
 		}
 		case GET_BOOK: {
 			int book_id = parse_book_id();
+			send_book_request(book_id);
 			break;
 		}
 		case ADD_BOOK: {
-			nlohmann::json *credentials = parse_book_details();
+			nlohmann::json *book = parse_book_details();
+			send_add_book_request(book);
 			break;
 		}
 		case DELETE_BOOK: {
 			int book_id = parse_book_id();
+			send_delete_book_request(book_id);
 			break;
 		}
 		case LOGOUT: {
+			logout();
 			break;
 		}
 		case EXIT: {
+			logout();
 			goto exit;
 		}
 		default:
