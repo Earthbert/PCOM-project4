@@ -13,12 +13,13 @@ int main() {
 
 		switch (get_command_type(command)) {
 		case REGISTER: {
-			nlohmann::json *res = parse_credentials();
-			send_register_request(res);
+			nlohmann::json *credentials = parse_credentials();
+			send_register_request(credentials);
 			break;
 		}
 		case LOGIN: {
-			nlohmann::json *res = parse_credentials();
+			nlohmann::json *credentials = parse_credentials();
+			send_login_request(credentials);
 			break;
 		}
 		case ENTER_LIBRARY: {
@@ -32,7 +33,7 @@ int main() {
 			break;
 		}
 		case ADD_BOOK: {
-			nlohmann::json *res = parse_book_details();
+			nlohmann::json *credentials = parse_book_details();
 			break;
 		}
 		case DELETE_BOOK: {

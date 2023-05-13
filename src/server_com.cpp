@@ -2,7 +2,6 @@
 #include "server_com.h"
 #include "requests.h"
 #include "helpers.h"
-#include "picohttpparser.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,16 +15,24 @@
 #define SERVER_IP "34.254.242.81"
 #define SERVER_PORT ((uint16_t)8080)
 
+#define HTTP_CREATED 201
+#define HTTP_OK 200
+#define BAD_REQUEST 400
+
 static int sockfd;
 
-static int parse_response(char *response) {
-	int version;
+static char *log_cookie = NULL;
+
+static int parse_response(char *response, char *cookie) {
 	int status;
-	const char *msg;
-	size_t msg_len;
-	size_t num_hdrs;
-	phr_header hdrs[16];
-	phr_parse_response(response, strlen(response), &version, &status, &msg, &msg_len, hdrs, &num_hdrs, 0);
+	sscanf(response, "HTTP/1.1 %d", &status);
+
+	if (cookie != NULL) {
+		response = strstr(response, "Set-Cookie: connect.sid=");
+		sscanf(response, "Set-Cookie: connect.sid=%[^;]", cookie);
+	}
+
+	assert(status != BAD_REQUEST);
 	return status;
 }
 
@@ -56,8 +63,31 @@ void send_register_request(nlohmann::json *credentials) {
 
 	char *response = receive_from_server(sockfd);
 
-	if (parse_response(response) != 200) {
+	if (parse_response(response, NULL) != HTTP_CREATED) {
 		printf("User already register\n");
+	}
+
+	free(response);
+	delete[] credentials_buf;
+	delete[] message;
+	delete credentials;
+}
+
+void send_login_request(nlohmann::json *credentials) {
+	char *message;
+	char *credentials_buf = new char[MAX_BODY_LEN];
+	strcpy(credentials_buf, credentials->dump().c_str());
+
+	message = compute_post_request(SERVER_IP, "/api/v1/tema/auth/login", "application/json",
+		&credentials_buf, 1, NULL, 0);
+
+	send_to_server(sockfd, message);
+
+	char *response = receive_from_server(sockfd);
+	log_cookie = new char[MAX_BODY_LEN];
+
+	if (parse_response(response, log_cookie) != HTTP_OK) {
+		printf("Wrong credentials\n");
 	}
 
 	free(response);
