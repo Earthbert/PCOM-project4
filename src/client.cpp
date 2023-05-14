@@ -2,16 +2,12 @@
 #include "server_com.h"
 
 #include <nlohmann/json.hpp>
-#include <stdio.h>
 
 int main() {
-	char line[MAX_COMMAND_LEN];
 	start_connection();
 
 	for (;;) {
-		fgets(line, MAX_COMMAND_LEN, stdin);
-
-		switch (get_command_type(line)) {
+		switch (get_command_type()) {
 		case REGISTER: {
 			nlohmann::json *credentials = parse_credentials();
 			send_register_request(credentials);

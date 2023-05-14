@@ -21,9 +21,12 @@
 
 #define MAX_LINE 512
 
-cmd_type get_command_type(char *line) {
+cmd_type get_command_type() {
+	char line[MAX_LINE];
 	char command[MAX_LINE];
 	char dummy[MAX_LINE];
+
+	fgets(line, MAX_COMMAND_LEN, stdin);
 
 	int rc = sscanf(line, "%s %[^\n\t ]", command, dummy);
 	if (rc != 1)
