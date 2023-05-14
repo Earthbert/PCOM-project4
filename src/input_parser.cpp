@@ -16,12 +16,19 @@
 
 #define INVALID_FORMAT(correct_format) do 					\
 { 															\
-	printf("Invalid input should be:%s\n", correct_format);	\
+	printf("Invalid input should be: %s\n", correct_format);\
 } while (0);												\
 
 #define MAX_LINE 512
 
-cmd_type get_command_type(char *command) {
+cmd_type get_command_type(char *line) {
+	char command[MAX_LINE];
+	char dummy[MAX_LINE];
+
+	int rc = sscanf(line, "%s %[^\n\t ]", command, dummy);
+	if (rc != 1)
+		goto invalid;
+
 	if (!strncmp(command, REG_CMD, strlen(REG_CMD)))
 		return REGISTER;
 
@@ -49,6 +56,7 @@ cmd_type get_command_type(char *command) {
 	if (!strncmp(command, EXIT_CMD, strlen(EXIT_CMD)))
 		return EXIT;
 
+invalid:
 	printf("Invalid input\n");
 	return INVALID_CMD;
 }
@@ -59,13 +67,14 @@ nlohmann::json *parse_credentials() {
 	char line[MAX_LINE];
 	char username[MAX_LINE];
 	char password[MAX_LINE];
+	char dummy[MAX_LINE];
 	nlohmann::json *result = new nlohmann::json;
 
 	printf("username=");
 	fgets(line, MAX_LINE, stdin);
-	rc = sscanf(line, "%s", username);
+	rc = sscanf(line, "%s %[^\n\t ]", username, dummy);
 	if (rc != 1) {
-		INVALID_FORMAT("A SINGLE STRING");
+		INVALID_FORMAT("<ONE STRING>");
 		wrong_format = true;
 	}
 	(*result)["username"] = username;
@@ -74,7 +83,7 @@ nlohmann::json *parse_credentials() {
 	fgets(line, MAX_LINE, stdin);
 	rc = sscanf(line, "%s", password);
 	if (rc != 1) {
-		INVALID_FORMAT("A SINGLE STRING");
+		INVALID_FORMAT("<ONE STRING>");
 		wrong_format = true;
 	}
 	(*result)["password"] = password;
@@ -96,49 +105,50 @@ nlohmann::json *parse_book_details() {
 	char genre[MAX_LINE];
 	char publisher[MAX_LINE];
 	int page_count;
+	char dummy[MAX_LINE];
 	nlohmann::json *result = new nlohmann::json;
 
 	printf("title=");
 	fgets(line, MAX_LINE, stdin);
 	rc = sscanf(line, "%[^\n]", title);
 	if (rc != 1) {
-		INVALID_FORMAT("A SINGLE OR MULTIPLE STRINGS");
+		INVALID_FORMAT("<ONE OR MORE STRINGS>");
 		wrong_format = true;
 	}
 	(*result)["title"] = title;
 
 	printf("author=");
 	fgets(line, MAX_LINE, stdin);
-	rc = sscanf(line, "%s\n", author);
+	rc = sscanf(line, "%s %[^\n\t ]", author, dummy);
 	if (rc != 1) {
-		INVALID_FORMAT("A SINGLE STRING");
+		INVALID_FORMAT("<ONE STRING>");
 		wrong_format = true;
 	}
 	(*result)["author"] = author;
 
 	printf("genre=");
 	fgets(line, MAX_LINE, stdin);
-	rc = sscanf(line, "%s", genre);
+	rc = sscanf(line, "%s %[^\n\t ]", genre, dummy);
 	if (rc != 1) {
-		INVALID_FORMAT("A SINGLE STRING");
+		INVALID_FORMAT("<ONE STRING>");
 		wrong_format = true;
 	}
 	(*result)["genre"] = genre;
 
 	printf("publisher=");
 	fgets(line, MAX_LINE, stdin);
-	rc = sscanf(line, "%s", publisher);
+	rc = sscanf(line, "%s %[^\n\t ]", publisher, dummy);
 	if (rc != 1) {
-		INVALID_FORMAT("A SINGLE STRING");
+		INVALID_FORMAT("<ONE STRING>");
 		wrong_format = true;
 	}
 	(*result)["publisher"] = publisher;
 
 	printf("page_count=");
 	fgets(line, MAX_LINE, stdin);
-	rc = sscanf(line, "%d", &page_count);
+	rc = sscanf(line, "%d %[^\n\t ]", &page_count, dummy);
 	if (rc != 1) {
-		INVALID_FORMAT("NUMBER");
+		INVALID_FORMAT("<NUMBER>");
 		wrong_format = true;
 	}
 	(*result)["page_count"] = page_count;
@@ -154,13 +164,14 @@ nlohmann::json *parse_book_details() {
 int parse_book_id() {
 	int rc;
 	char line[MAX_LINE];
+	char dummy[MAX_LINE];
 	int book_id;
 
 	printf("id=");
 	fgets(line, MAX_LINE, stdin);
-	rc = sscanf(line, "%d", &book_id);
+	rc = sscanf(line, "%d %[^\n\t ]", &book_id, dummy);
 	if (rc != 1) {
-		INVALID_FORMAT("NUMBER");
+		INVALID_FORMAT("<NUMBER>");
 		return -1;
 	}
 

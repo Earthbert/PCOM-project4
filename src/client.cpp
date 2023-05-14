@@ -5,13 +5,13 @@
 #include <stdio.h>
 
 int main() {
-	char command[MAX_COMMAND_LEN];
+	char line[MAX_COMMAND_LEN];
 	start_connection();
 
 	for (;;) {
-		fgets(command, MAX_COMMAND_LEN, stdin);
+		fgets(line, MAX_COMMAND_LEN, stdin);
 
-		switch (get_command_type(command)) {
+		switch (get_command_type(line)) {
 		case REGISTER: {
 			nlohmann::json *credentials = parse_credentials();
 			send_register_request(credentials);

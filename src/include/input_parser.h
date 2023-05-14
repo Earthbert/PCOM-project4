@@ -17,7 +17,7 @@ enum cmd_type {
 	INVALID_CMD
 };
 
-cmd_type get_command_type(char *command);
+cmd_type get_command_type(char *line);
 
 nlohmann::json *parse_credentials();
 

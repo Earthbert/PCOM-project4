@@ -19,6 +19,7 @@
 #define HTTP_CREATED 201
 #define HTTP_OK 200
 #define BAD_REQUEST 400
+#define NOT_FOUND 404
 
 static int sockfd;
 
@@ -48,15 +49,15 @@ static int parse_response(char *response, char *cookie, char *auth,
 	if (books) {
 		char books_buf[4096];
 		response = strstr(response, "[");
-		sscanf(response, "%[^\r]", books_buf);
+		sscanf(response, "%[^\r ]", books_buf);
 		*books = nlohmann::json::parse(books_buf);
 	}
 
 	if (book) {
 		char book_buf[4096];
-		response = strstr(response, "[");
-		sscanf(response, "%[^\r]", book_buf);
-		*books = nlohmann::json::parse(book_buf);
+		response = strstr(response, "{");
+		sscanf(response, "%[^\r ]", book_buf);
+		*book = nlohmann::json::parse(book_buf);
 	}
 
 	return status;
@@ -71,6 +72,7 @@ send:
 
 	if (!strlen(response)) {
 		close(sockfd);
+		free(response);
 		start_connection();
 		goto send;
 	}
@@ -97,17 +99,18 @@ void send_register_request(nlohmann::json *credentials) {
 	if (!credentials)
 		return;
 
-	char *message;
 	char *credentials_buf = new char[MAX_STR_LEN];
 	strcpy(credentials_buf, credentials->dump().c_str());
-
-	message = compute_post_request(SERVER_IP, "/api/v1/tema/auth/register", "application/json", NULL,
-		&credentials_buf, 1, NULL, 0);
+	char *message = compute_post_request(SERVER_IP, "/api/v1/tema/auth/register", "application/json",
+		NULL, &credentials_buf, 1, NULL, 0);
 
 	char *response = send_and_receive(message);
+	int status = parse_response(response, NULL, NULL, NULL, NULL);
 
-	if (parse_response(response, NULL, NULL, NULL, NULL) != HTTP_CREATED) {
-		printf("User already register\n");
+	if (status != HTTP_CREATED) {
+		printf("--User already register--\n");
+	} else {
+		printf("--Registered successfully--\n");
 	}
 
 	free(response);
@@ -120,21 +123,23 @@ void send_login_request(nlohmann::json *credentials) {
 	if (!credentials)
 		return;
 
-	char *message;
 	char *credentials_buf = new char[MAX_STR_LEN];
 	strcpy(credentials_buf, credentials->dump().c_str());
-
-	message = compute_post_request(SERVER_IP, "/api/v1/tema/auth/login", "application/json", NULL,
-		&credentials_buf, 1, NULL, 0);
+	char *message = compute_post_request(SERVER_IP, "/api/v1/tema/auth/login", "application/json",
+		NULL, &credentials_buf, 1, NULL, 0);
 
 	char *response = send_and_receive(message);
-
+	if (log_cookie)
+		logout();
 	log_cookie = new char[MAX_STR_LEN];
+	int status = parse_response(response, log_cookie, NULL, NULL, NULL);
 
-	if (parse_response(response, log_cookie, NULL, NULL, NULL) != HTTP_OK) {
-		printf("Wrong credentials\n");
+	if (status != HTTP_OK) {
+		printf("--Wrong credentials--\n");
 		delete[] log_cookie;
 		log_cookie = NULL;
+	} else {
+		printf("--Logged in--\n");
 	}
 
 	free(response);
@@ -145,21 +150,22 @@ void send_login_request(nlohmann::json *credentials) {
 
 void send_access_request() {
 	if (!log_cookie) {
-		printf("Not Logged in\n");
+		printf("--Not Logged in--\n");
 		return;
 	}
 
-	char *message;
-
-	message = compute_get_request(SERVER_IP, "/api/v1/tema/library/access", NULL, &log_cookie, 1);
+	char *message = compute_get_request(SERVER_IP, "/api/v1/tema/library/access", NULL, &log_cookie, 1);
 
 	char *response = send_and_receive(message);
 	jwt_auth = new char[MAX_STR_LEN];
+	int status = parse_response(response, NULL, jwt_auth, NULL, NULL);
 
-	if (parse_response(response, NULL, jwt_auth, NULL, NULL) != HTTP_OK) {
-		printf("Wrong credentials\n");
+	if (status != HTTP_OK) {
+		printf("--Wrong credentials--\n");
 		delete[] jwt_auth;
 		jwt_auth = NULL;
+	} else {
+		printf("--Received library access--\n");
 	}
 
 	free(response);
@@ -168,85 +174,90 @@ void send_access_request() {
 
 void send_books_request() {
 	if (!log_cookie) {
-		printf("Not Logged in\n");
+		printf("--Not Logged in--\n");
 		return;
 	}
 	if (!jwt_auth) {
-		printf("No library access\n");
+		printf("--No library access--\n");
 		return;
 	}
 
-	char *message;
-
-	message = compute_get_request(SERVER_IP, "/api/v1/tema/library/books", jwt_auth, NULL, 1);
+	char *message = compute_get_request(SERVER_IP, "/api/v1/tema/library/books", jwt_auth, NULL, 1);
 
 	char *response = send_and_receive(message);
 	nlohmann::json *books = new nlohmann::json;
+	int status = parse_response(response, NULL, NULL, books, NULL);
 
-	if (parse_response(response, NULL, NULL, books, NULL) != HTTP_OK) {
-		printf("Access denied\n");
-		delete books;
+	if (status != HTTP_OK) {
+		printf("--Access denied--\n");
+	} else {
+		printf("--Books details--\n");
+		printf("%s\n", books->dump(4).c_str());
 	}
 
+	delete books;
 	free(response);
 	delete[] message;
 }
 
 void send_book_request(int id) {
+	if (id == -1)
+		return;
 	if (!log_cookie) {
-		printf("Not Logged in\n");
+		printf("--Not Logged in--\n");
 		return;
 	}
 	if (!jwt_auth) {
-		printf("No library access\n");
+		printf("--No library access--\n");
 		return;
 	}
 
-	char *message;
-
-	if (!log_cookie) {
-		printf("Not Logged in");
-	}
-
 	char url[MAX_STR_LEN] = { 0 };
-	strcat(url, "/api/v1/tema/library/book/");
+	strcat(url, "/api/v1/tema/library/books/");
 	sprintf(url + strlen(url), "%d", id);
-
-	message = compute_get_request(SERVER_IP, url, jwt_auth, NULL, 1);
+	char *message = compute_get_request(SERVER_IP, url, jwt_auth, NULL, 1);
 
 	char *response = send_and_receive(message);
 	nlohmann::json *book = new nlohmann::json;
 
-	if (parse_response(response, NULL, NULL, NULL, book) != HTTP_OK) {
-		printf("Error\n");
-		delete book;
+	int status = parse_response(response, NULL, NULL, NULL, book);
+
+	if (status == NOT_FOUND) {
+		printf("--Book not found--\n");
+	} else {
+		printf("--Requested book--\n");
+		printf("%s\n", book->dump(4).c_str());
 	}
 
+	delete book;
 	free(response);
 	delete[] message;
 }
 
 void send_add_book_request(nlohmann::json *book) {
+	if (!book)
+		return;
 	if (!log_cookie) {
-		printf("Not Logged in\n");
+		printf("--Not Logged in--\n");
 		return;
 	}
 	if (!jwt_auth) {
-		printf("No library access\n");
+		printf("--No library access--\n");
 		return;
 	}
 
-	char *message;
 	char *book_buf = new char[MAX_STR_LEN];
 	strcpy(book_buf, book->dump().c_str());
-
-	message = compute_post_request(SERVER_IP, "/api/v1/tema/library/books", "application/json", jwt_auth,
-		&book_buf, 1, NULL, 0);
+	char *message = compute_post_request(SERVER_IP, "/api/v1/tema/library/books", "application/json",
+		jwt_auth, &book_buf, 1, NULL, 0);
 
 	char *response = send_and_receive(message);
+	int status = parse_response(response, NULL, NULL, NULL, NULL);
 
-	if (parse_response(response, NULL, NULL, NULL, NULL) != HTTP_CREATED) {
-		printf("Error adding book\n");
+	if (status != HTTP_OK) {
+		printf("--Error adding book--\n");
+	} else {
+		printf("--Added book--\n");
 	}
 
 	free(response);
@@ -256,35 +267,56 @@ void send_add_book_request(nlohmann::json *book) {
 }
 
 void send_delete_book_request(int id) {
+	if (id == -1)
+		return;
 	if (!log_cookie) {
-		printf("Not Logged in\n");
+		printf("--Not Logged in--\n");
 		return;
 	}
 	if (!jwt_auth) {
-		printf("No library access\n");
+		printf("--No library access--\n");
 		return;
 	}
 
-	char *message;
-
 	char url[MAX_STR_LEN] = { 0 };
-	strcat(url, "/api/v1/tema/library/book/");
+	strcat(url, "/api/v1/tema/library/books/");
 	sprintf(url + strlen(url), "%d", id);
-
-	message = compute_delete_request(SERVER_IP, url, jwt_auth);
+	char *message = compute_delete_request(SERVER_IP, url, jwt_auth);
 
 	char *response = send_and_receive(message);
+	int status = parse_response(response, NULL, NULL, NULL, NULL);
 
-	if (parse_response(response, NULL, NULL, NULL, NULL) != HTTP_CREATED) {
-		printf("Error deleting book\n");
+	if (status != HTTP_OK) {
+		printf("--Error deleting book--\n");
+	} else {
+		printf("--Deleted book successfully--\n");
 	}
+
+	free(response);
+	delete[] message;
 }
 
 void logout() {
+	if (!log_cookie) {
+		printf("--Not Logged in--\n");
+		return;
+	}
+
+	char *message = compute_get_request(SERVER_IP, "/api/v1/tema/auth/logout", NULL, &log_cookie, 1);
+
+	char *response = send_and_receive(message);
+	int status = parse_response(response, NULL, NULL, NULL, NULL);
+
+	if (status > 400) {
+		printf("--Not Logged in--\n");
+	} else {
+		printf("--Logged out--\n");
+	}
+
+	free(response);
+	delete[] message;
 	delete[] jwt_auth;
 	jwt_auth = NULL;
 	delete[] log_cookie;
 	log_cookie = NULL;
-
-	printf("Logged out\n");
 }
