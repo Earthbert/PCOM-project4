@@ -24,28 +24,6 @@ void compute_message(char *message, const char *line) {
     strcat(message, "\r\n");
 }
 
-int open_connection(char *host_ip, int portno, int ip_type, int socket_type, int flag) {
-    struct sockaddr_in serv_addr;
-    int sockfd = socket(ip_type, socket_type, flag);
-    if (sockfd < 0)
-        error("ERROR opening socket");
-
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = ip_type;
-    serv_addr.sin_port = htons(portno);
-    inet_aton(host_ip, &serv_addr.sin_addr);
-
-
-    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR connecting");
-
-    return sockfd;
-}
-
-void close_connection(int sockfd) {
-    close(sockfd);
-}
-
 void send_to_server(int sockfd, char *message) {
     int bytes, sent = 0;
     int total = strlen(message);
@@ -116,8 +94,4 @@ char *receive_from_server(int sockfd) {
     }
     buffer_add(&buffer, "", 1);
     return buffer.data;
-}
-
-char *basic_extract_json_response(char *str) {
-    return strstr(str, "{\"");
 }
