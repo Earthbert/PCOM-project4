@@ -47,17 +47,19 @@ static int parse_response(char *response, char *cookie, char *auth,
 	}
 
 	if (books) {
-		char books_buf[4096];
+		char *books_buf = new char[24576];
 		response = strstr(response, "[");
-		sscanf(response, "%[^\r ]", books_buf);
+		sscanf(response, "%[^\r\n]", books_buf);
 		*books = nlohmann::json::parse(books_buf);
+		delete[] books_buf;
 	}
 
 	if (book) {
-		char book_buf[4096];
+		char *book_buf = new char[4096];
 		response = strstr(response, "{");
-		sscanf(response, "%[^\r ]", book_buf);
+		sscanf(response, "%[^\r\n]", book_buf);
 		*book = nlohmann::json::parse(book_buf);
+		delete[] book_buf;
 	}
 
 	return status;
