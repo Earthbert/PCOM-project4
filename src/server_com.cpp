@@ -185,17 +185,16 @@ void send_books_request() {
 	char *message = compute_get_request(SERVER_IP, "/api/v1/tema/library/books", jwt_auth, NULL, 1);
 
 	char *response = send_and_receive(message);
-	nlohmann::json *books = new nlohmann::json;
-	int status = parse_response(response, NULL, NULL, books, NULL);
+	nlohmann::json books;
+	int status = parse_response(response, NULL, NULL, &books, NULL);
 
 	if (status != HTTP_OK) {
 		printf("--Access denied--\n");
 	} else {
 		printf("--Books details--\n");
-		printf("%s\n", books->dump(4).c_str());
+		printf("%s\n", books.dump(4).c_str());
 	}
 
-	delete books;
 	free(response);
 	delete[] message;
 }
@@ -218,18 +217,17 @@ void send_book_request(int id) {
 	char *message = compute_get_request(SERVER_IP, url, jwt_auth, NULL, 1);
 
 	char *response = send_and_receive(message);
-	nlohmann::json *book = new nlohmann::json;
+	nlohmann::json book;
 
-	int status = parse_response(response, NULL, NULL, NULL, book);
+	int status = parse_response(response, NULL, NULL, NULL, &book);
 
 	if (status == NOT_FOUND) {
 		printf("--Book not found--\n");
 	} else {
 		printf("--Requested book--\n");
-		printf("%s\n", book->dump(4).c_str());
+		printf("%s\n", book.dump(4).c_str());
 	}
 
-	delete book;
 	free(response);
 	delete[] message;
 }
@@ -239,10 +237,12 @@ void send_add_book_request(nlohmann::json *book) {
 		return;
 	if (!log_cookie) {
 		printf("--Not Logged in--\n");
+		delete book;
 		return;
 	}
 	if (!jwt_auth) {
 		printf("--No library access--\n");
+		delete book;
 		return;
 	}
 
